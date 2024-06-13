@@ -20,7 +20,7 @@ class Config:
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
     POSTGRES_DB = os.getenv("POSTGRES_DB")
     POSTGRES_CHARSET = os.getenv("POSTGRES_CHARSET")
-    TABLE_NAME = os.getenv("TABLE_NAME")
+    TABLE_NAME = os.getenv("TAR_GET_TABLE_NAME")
 
 
 db_params = {
@@ -40,7 +40,7 @@ def create_table():
     #  sql = f"SELECT * from {Config.TABLE_NAME}"
     cur.execute(f"DROP TABLE IF EXISTS {Config.TABLE_NAME}")
     cur.execute("""
-            CREATE TABLE mb_my_sample (
+            CREATE TABLE {Config.TABLE_NAME} (
         id SERIAL PRIMARY KEY,
         department_name VARCHAR(255),
         sensor_serial VARCHAR(255),
@@ -56,34 +56,15 @@ def create_table():
     connection.close()
 
 
-def clear_db():
-    import pandas as pd
-    table_df = pd.read_csv("/home/airflow/data/bank_term_deposit.csv")
-
-    table_df['age'].fillna('41.6', inplace=True)
-    table_df['balance'].fillna('1136.75', inplace=True)
-    table_df['pdays'] = table_df['pdays'].astype(str)
-    table_df['pdays'] = table_df.apply(
-        lambda x: x["pdays"].replace("-1", "0"), axis=1)
-    table_df['pdays'] = table_df['pdays'].astype(int)
-    table_df['age'] = table_df['age'].astype(float)
-    table_df['balance'] = table_df['balance'].astype(float)
-
-    # save ไฟล์ CSV
-    table_df.to_csv("/home/airflow/data/result.csv", index=False)
-
-
 def insert_data():
     import pandas as pd
     files = os.listdir(data_path)
     for i, file in enumerate(files):
         df = pd.read_parquet(f'{data_path}/{file}')
         connection = psycopg2.connect(db_params)
-        # cur = connection.cursor()
         df.to_sql('MB_my_sample', con=connection,
                   if_exists='append', index=False, chunksize=1000)
     connection.commit()
-    # cur.close()
     connection.close()
 
 
@@ -112,17 +93,20 @@ dag = DAG(
 #     python_callable=create_table,
 #     dag=dag,
 # )
-tasks = []
+# tasks = []
 # for i, file in enumerate(files):
 # Create a new PythonOperator that calls the insert_data function
+
+
 t1 = PythonOperator(
     task_id=f'insert_data',
     python_callable=insert_data,
     # op_kwargs={'file': file},
     dag=dag,
 )
-# t1 >> t2
 t1
+# t1 >> t2
+
 # if i > 0:
 #     tasks[i] >> t
 # tasks.append(t)
