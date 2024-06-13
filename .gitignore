@@ -1,0 +1,6 @@
+/data_sample/**
+/.venv
+/data/** */
+.DS_Store
+/src
+/logs/**
